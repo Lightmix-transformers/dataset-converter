@@ -43,4 +43,4 @@ output:
   chunk_size: 5000
   compression:
     compress: true
-    algorithm: zstd
+    algorithm: none

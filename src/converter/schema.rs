@@ -1,6 +1,8 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
+use crate::formats::Compression;
+
 /// Top-level dataset schema configuration loaded from YAML.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatasetSchema {
@@ -54,7 +56,6 @@ pub struct FileConfig {
 fn default_entity() -> String {
     "data".to_string()
 }
-
 
 /// Field extraction rule with JSONPath selector, column name, or file path.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -138,7 +139,7 @@ fn default_compress() -> bool {
 }
 
 fn default_algo() -> String {
-    "zstd".into()
+    "none".into()
 }
 
 fn default_format() -> String {
@@ -178,7 +179,9 @@ impl DatasetSchema {
             issues.push("At least one field must be defined".into());
         }
 
-        let valid_types = ["u32", "u64", "i32", "i64", "f32", "f64", "string", "bool", "binary"];
+        let valid_types = [
+            "u32", "u64", "i32", "i64", "f32", "f64", "string", "bool", "binary",
+        ];
 
         let valid_modes = ["grayscale", "gray", "rgb"];
         for field in &self.fields {
@@ -230,7 +233,7 @@ impl DatasetSchema {
             ));
         }
 
-        let valid_algos = ["zstd", "zlib"];
+        let valid_algos = Compression::formats();
         if !valid_algos.contains(&self.output.compression.algorithm.as_str()) {
             issues.push(format!(
                 "Compression algorithm '{}': invalid. Must be one of: {:?}",

@@ -36,21 +36,26 @@ pub enum Compression {
 }
 
 impl Compression {
-    pub fn to_parquet(&self) -> anyhow::Result<ParquetCompression> {
+    pub fn to_parquet(&self) -> anyhow::Result<Option<ParquetCompression>> {
         match self {
-            Self::Zstd => Ok(ParquetCompression::Zstd(None)),
-            Self::Gzip => Ok(ParquetCompression::Gzip(None)),
-            Self::Snappy => Ok(ParquetCompression::Snappy),
-            Self::None => Ok(ParquetCompression::Uncompressed),
+            Self::Zstd => Ok(Some(ParquetCompression::Zstd(None))),
+            Self::Gzip => Ok(Some(ParquetCompression::Gzip(None))),
+            Self::Snappy => Ok(Some(ParquetCompression::Snappy)),
+            Self::None => Ok(Some(ParquetCompression::Uncompressed)),
             _ => Err(anyhow::anyhow!("Wrong compression format for parquet")),
         }
     }
 
-    pub fn to_arrow(&self) -> anyhow::Result<IpcCompression> {
+    pub fn to_arrow(&self) -> anyhow::Result<Option<IpcCompression>> {
         match self {
-            Self::Lz4 => Ok(IpcCompression::LZ4),
+            Self::Lz4 => Ok(Some(IpcCompression::LZ4)),
+            Self::None => Ok(None),
             _ => Err(anyhow::anyhow!("Wrong compression format for arrow")),
         }
+    }
+
+    pub fn formats() -> [&'static str; 4] {
+        ["zstd", "gzip", "snappy", "none"]
     }
 }
 
@@ -75,10 +80,21 @@ pub fn write_dataset(
 ) {
     match format {
         DatasetFormat::Parquet => {
-            write_chunk_parquet(file, compression.to_parquet().unwrap(), chunk, path).unwrap();
+            write_chunk_parquet(
+                file,
+                compression.to_parquet().unwrap().unwrap(),
+                chunk,
+                path,
+            )
+            .unwrap();
         }
         DatasetFormat::Arrow => {
-            write_chunk_arrow(file, compression.to_arrow().unwrap(), chunk, path).unwrap();
+            let arrow_compression = compression.to_arrow().unwrap();
+            if arrow_compression.is_some() {
+                write_chunk_arrow(file, arrow_compression, chunk, path).unwrap();
+            } else {
+                write_chunk_arrow(file, None, chunk, path).unwrap();
+            }
         }
         _ => unimplemented!(),
     }

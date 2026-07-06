@@ -5,12 +5,17 @@ use polars::prelude::*;
 
 pub fn write_chunk_arrow(
     file: File,
-    compression: IpcCompression,
+    compression: Option<IpcCompression>,
     chunk: &mut DataFrame,
     path: &str,
 ) -> Result<(), anyhow::Error> {
-    IpcWriter::new(file)
-        .with_compression(Some(compression))
-        .finish(chunk)
-        .with_context(|| format!("Failed to write parquet '{}'", path))
+    match compression.is_some() {
+        true => IpcWriter::new(file)
+            .with_compression(compression)
+            .finish(chunk)
+            .with_context(|| format!("Failed to write parquet '{}'", path)),
+        false => IpcWriter::new(file)
+            .finish(chunk)
+            .with_context(|| format!("Failed to write parquet '{}'", path)),
+    }
 }
