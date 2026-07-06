@@ -1,0 +1,77 @@
+name: openimages_local_test
+version: "1.0"
+
+source:
+  type: local
+  path: .
+
+files:
+  - path: test_openimages.json
+    entity: bounding_boxes
+  - path: test_openimages.json
+    entity: classifications
+
+fields:
+  # Classification fields
+  - name: image_id
+    jsonpath: "$.classifications[*].ImageID"
+    dtype: string
+    entity: classifications
+
+  - name: label_name
+    jsonpath: "$.classifications[*].LabelName"
+    dtype: string
+    entity: classifications
+
+  - name: label_confidence
+    jsonpath: "$.classifications[*].Confidence"
+    dtype: f32
+    entity: classifications
+
+  # Bounding box fields
+  - name: image_id_bbox
+    jsonpath: "$.bounding_boxes[*].ImageID"
+    dtype: string
+    entity: bounding_boxes
+
+  - name: bbox_id
+    jsonpath: "$.bounding_boxes[*].BoundingBoxID"
+    dtype: string
+    entity: bounding_boxes
+
+  - name: label_name_bbox
+    jsonpath: "$.bounding_boxes[*].LabelName"
+    dtype: string
+    entity: bounding_boxes
+
+  - name: x1
+    jsonpath: "$.bounding_boxes[*].X1"
+    dtype: f32
+    entity: bounding_boxes
+
+  - name: y1
+    jsonpath: "$.bounding_boxes[*].Y1"
+    dtype: f32
+    entity: bounding_boxes
+
+  - name: x2
+    jsonpath: "$.bounding_boxes[*].X2"
+    dtype: f32
+    entity: bounding_boxes
+
+  - name: y2
+    jsonpath: "$.bounding_boxes[*].Y2"
+    dtype: f32
+    entity: bounding_boxes
+
+joins:
+  - left_field: bounding_boxes.image_id_bbox
+    right_field: classifications.image_id
+    strategy: inner
+
+output:
+  format: parquet
+  chunk_size: 10000
+  compression:
+    compress: true
+    algorithm: zstd

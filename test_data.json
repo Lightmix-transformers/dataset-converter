@@ -1,0 +1,49 @@
+{
+  "images": [
+    {
+      "id": 1,
+      "file_name": "test1_coco.jpg",
+      "width": 640,
+      "height": 426
+    },
+    {
+      "id": 2,
+      "file_name": "test2_coco.jpg",
+      "width": 640,
+      "height": 425
+    }
+  ],
+  "annotations": [
+    {
+      "id": 101,
+      "image_id": 1,
+      "bbox": [10.0, 20.0, 50.0, 30.0],
+      "area": 1500.0,
+      "category_id": 1
+    },
+    {
+      "id": 102,
+      "image_id": 1,
+      "bbox": [100.0, 50.0, 80.0, 60.0],
+      "area": 4800.0,
+      "category_id": 2
+    },
+    {
+      "id": 103,
+      "image_id": 2,
+      "bbox": [5.0, 10.0, 100.0, 80.0],
+      "area": 8000.0,
+      "category_id": 1
+    }
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "name": "person"
+    },
+    {
+      "id": 2,
+      "name": "car"
+    }
+  ]
+}

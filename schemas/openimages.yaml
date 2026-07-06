@@ -1,0 +1,97 @@
+name: openimages
+version: "1.0"
+
+source:
+  type: hf_dataset
+  dataset: huggingface/OpenImages
+
+files:
+  - path: annotations/openimages_vesion_0.6.json
+    entity: annotations
+  - path: classes/classes.csv
+    entity: classes
+
+fields:
+  # Classification fields
+  - name: image_id
+    jsonpath: "$.classifications[*].ImageID"
+    dtype: string
+    entity: classifications
+
+  - name: label_name
+    jsonpath: "$.classifications[*].LabelName"
+    dtype: string
+    entity: classifications
+
+  - name: label_confidence
+    jsonpath: "$.classifications[*].Confidence"
+    dtype: f32
+    entity: classifications
+
+  # Bounding box fields
+  - name: image_id_bbox
+    jsonpath: "$.bounding_boxes[*].ImageID"
+    dtype: string
+    entity: bounding_boxes
+
+  - name: bbox_id
+    jsonpath: "$.bounding_boxes[*].Bounding Box ID"
+    dtype: string
+    entity: bounding_boxes
+
+  - name: label_name_bbox
+    jsonpath: "$.bounding_boxes[*].Label Name"
+    dtype: string
+    entity: bounding_boxes
+
+  - name: x1
+    jsonpath: "$.bounding_boxes[*].X1"
+    dtype: f32
+    entity: bounding_boxes
+
+  - name: y1
+    jsonpath: "$.bounding_boxes[*].Y1"
+    dtype: f32
+    entity: bounding_boxes
+
+  - name: x2
+    jsonpath: "$.bounding_boxes[*].X2"
+    dtype: f32
+    entity: bounding_boxes
+
+  - name: y2
+    jsonpath: "$.bounding_boxes[*].Y2"
+    dtype: f32
+    entity: bounding_boxes
+
+  - name: is_occluded
+    jsonpath: "$.bounding_boxes[*].IsOccluded"
+    dtype: bool
+    entity: bounding_boxes
+
+  - name: is_truncated
+    jsonpath: "$.bounding_boxes[*].IsTruncated"
+    dtype: bool
+    entity: bounding_boxes
+
+  - name: is_outside
+    jsonpath: "$.bounding_boxes[*].IsOutside"
+    dtype: bool
+    entity: bounding_boxes
+
+  - name: attributes
+    jsonpath: "$.bounding_boxes[*].Attributes"
+    dtype: string
+    entity: bounding_boxes
+
+joins:
+  - left_field: bounding_boxes.image_id_bbox
+    right_field: classifications.image_id
+    strategy: inner
+
+output:
+  format: parquet
+  chunk_size: 10000
+  compression:
+    compress: true
+    algorithm: zstd

@@ -1,0 +1,68 @@
+{
+  "images": [
+    {
+      "id": 1001,
+      "file_name": "lvis_000001.jpg",
+      "width": 1024,
+      "height": 768
+    },
+    {
+      "id": 1002,
+      "file_name": "lvis_000002.jpg",
+      "width": 1280,
+      "height": 960
+    }
+  ],
+  "annotations": [
+    {
+      "id": 5001,
+      "image_id": 1001,
+      "category_id": 40,
+      "bbox": [100.0, 200.0, 150.0, 200.0],
+      "area": 30000.0,
+      "segmentation": [[100,200,250,200,250,400,100,400]],
+      "iscrowd": false
+    },
+    {
+      "id": 5002,
+      "image_id": 1001,
+      "category_id": 85,
+      "bbox": [300.0, 100.0, 80.0, 120.0],
+      "area": 9600.0,
+      "segmentation": [[300,100,380,100,380,220,300,220]],
+      "iscrowd": false
+    },
+    {
+      "id": 5003,
+      "image_id": 1002,
+      "category_id": 40,
+      "bbox": [50.0, 50.0, 300.0, 400.0],
+      "area": 120000.0,
+      "segmentation": [[50,50,350,50,350,450,50,450]],
+      "iscrowd": false
+    },
+    {
+      "id": 5004,
+      "image_id": 1002,
+      "category_id": 120,
+      "bbox": [600.0, 300.0, 100.0, 80.0],
+      "area": 8000.0,
+      "segmentation": [[600,300,700,300,700,380,600,380]],
+      "iscrowd": true
+    }
+  ],
+  "categories": [
+    {
+      "id": 40,
+      "name": "bicycle"
+    },
+    {
+      "id": 85,
+      "name": "laptop"
+    },
+    {
+      "id": 120,
+      "name": "zebra"
+    }
+  ]
+}

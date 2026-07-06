@@ -1,0 +1,106 @@
+name: lvis
+version: "1.0"
+
+source:
+  type: hf_dataset
+  dataset: lvis/lvis_v1
+
+files:
+  - path: annotations/lvis_v1_train.json
+    entity: annotations
+  - path: annotations/lvis_v1_val.json
+    entity: val_annotations
+  - path: images/train/*.jpg
+    entity: images
+  - path: images/val/*.jpg
+    entity: val_images
+
+fields:
+  # Image fields
+  - name: image_id
+    jsonpath: "$.images[*].id"
+    dtype: u32
+    entity: images
+
+  - name: file_name
+    jsonpath: "$.images[*].file_name"
+    dtype: string
+    entity: images
+
+  - name: width
+    jsonpath: "$.images[*].width"
+    dtype: u32
+    entity: images
+
+  - name: height
+    jsonpath: "$.images[*].height"
+    dtype: u32
+    entity: images
+
+  - name: image_bytes
+    source: "images/train/*.jpg"
+    dtype: binary
+    entity: images
+
+  # Annotation fields
+  - name: annotation_id
+    jsonpath: "$.annotations[*].id"
+    dtype: u32
+    entity: annotations
+
+  - name: image_id_ref
+    jsonpath: "$.annotations[*].image_id"
+    dtype: u32
+    entity: annotations
+
+  - name: category_id
+    jsonpath: "$.annotations[*].category_id"
+    dtype: u32
+    entity: annotations
+
+  - name: bbox_x
+    jsonpath: "$.annotations[*].bbox[0]"
+    dtype: f32
+    entity: annotations
+
+  - name: bbox_y
+    jsonpath: "$.annotations[*].bbox[1]"
+    dtype: f32
+    entity: annotations
+
+  - name: bbox_w
+    jsonpath: "$.annotations[*].bbox[2]"
+    dtype: f32
+    entity: annotations
+
+  - name: bbox_h
+    jsonpath: "$.annotations[*].bbox[3]"
+    dtype: f32
+    entity: annotations
+
+  - name: area
+    jsonpath: "$.annotations[*].area"
+    dtype: f32
+    entity: annotations
+
+  - name: segmentation
+    jsonpath: "$.annotations[*].segmentation"
+    dtype: string
+    entity: annotations
+
+  - name: is_crowd
+    jsonpath: "$.annotations[*].iscrowd"
+    dtype: bool
+    entity: annotations
+
+joins:
+  - left_field: annotations.image_id_ref
+    right_field: images.image_id
+    strategy: left
+
+output:
+  format: parquet
+  chunk_size: 10000
+  compression:
+    compress: true
+    algorithm: zstd

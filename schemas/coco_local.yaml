@@ -1,0 +1,80 @@
+name: coco_local
+version: "1.0"
+
+source:
+  type: local
+  path: .
+
+files:
+  - path: test_data.json
+    entity: annotations
+
+fields:
+  - name: image_id
+    jsonpath: "$.images[*].id"
+    dtype: u32
+    entity: images
+
+  - name: file_name
+    jsonpath: "$.images[*].file_name"
+    dtype: string
+    entity: images
+
+  - name: width
+    jsonpath: "$.images[*].width"
+    dtype: u32
+    entity: images
+
+  - name: height
+    jsonpath: "$.images[*].height"
+    dtype: u32
+    entity: images
+
+  - name: annotation_image_id
+    jsonpath: "$.annotations[*].image_id"
+    dtype: u32
+    entity: annotations
+
+  - name: annotation_id
+    jsonpath: "$.annotations[*].id"
+    dtype: u32
+    entity: annotations
+
+  - name: bbox_x
+    jsonpath: "$.annotations[*].bbox[0]"
+    dtype: f32
+    entity: annotations
+
+  - name: bbox_y
+    jsonpath: "$.annotations[*].bbox[1]"
+    dtype: f32
+    entity: annotations
+
+  - name: bbox_w
+    jsonpath: "$.annotations[*].bbox[2]"
+    dtype: f32
+    entity: annotations
+
+  - name: bbox_h
+    jsonpath: "$.annotations[*].bbox[3]"
+    dtype: f32
+    entity: annotations
+
+  - name: area
+    jsonpath: "$.annotations[*].area"
+    dtype: f32
+    entity: annotations
+
+  - name: category_id
+    jsonpath: "$.annotations[*].category_id"
+    dtype: u32
+    entity: annotations
+
+joins:
+  - left_field: annotations.annotation_image_id
+    right_field: images.image_id
+    strategy: left
+
+output:
+  format: parquet
+  chunk_size: 10000

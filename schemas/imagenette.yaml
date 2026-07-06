@@ -1,0 +1,46 @@
+name: imagenette
+version: "1.0"
+description: "ImageNette2 - A subset of ImageNet with 10 easily distinguishable classes"
+
+source:
+  type: local
+  path: .
+
+files:
+  - path: noisy_imagenette.csv
+    entity: images
+
+fields:
+  - name: image_id
+    column_name: "path"
+    dtype: string
+    entity: images
+
+  - name: class_id
+    column_name: "noisy_labels_0"
+    dtype: string
+    entity: images
+
+  - name: noisy_label_5
+    column_name: "noisy_labels_5"
+    dtype: string
+    entity: images
+
+  - name: is_valid
+    column_name: "is_valid"
+    dtype: bool
+    entity: images
+
+  - name: image_bytes
+    source: "train/**/*.JPEG,val/**/*.JPEG"
+    dtype: binary
+    decode: true
+    image_mode: rgb
+    entity: images
+
+output:
+  format: parquet
+  chunk_size: 5000
+  compression:
+    compress: true
+    algorithm: zstd

@@ -1,0 +1,74 @@
+{
+  "classifications": [
+    {
+      "ImageID": "openimage_001",
+      "LabelName": "Person",
+      "Confidence": 0.95
+    },
+    {
+      "ImageID": "openimage_001",
+      "LabelName": "Car",
+      "Confidence": 0.87
+    },
+    {
+      "ImageID": "openimage_002",
+      "LabelName": "Dog",
+      "Confidence": 0.92
+    }
+  ],
+  "bounding_boxes": [
+    {
+      "ImageID": "openimage_001",
+      "BoundingBoxID": "bbox_001",
+      "LabelName": "Person",
+      "X1": 50.0,
+      "Y1": 100.0,
+      "X2": 200.0,
+      "Y2": 400.0,
+      "IsOccluded": false,
+      "IsTruncated": false,
+      "IsOutside": false,
+      "Attributes": "walking"
+    },
+    {
+      "ImageID": "openimage_001",
+      "BoundingBoxID": "bbox_002",
+      "LabelName": "Car",
+      "X1": 300.0,
+      "Y1": 200.0,
+      "X2": 600.0,
+      "Y2": 500.0,
+      "IsOccluded": false,
+      "IsTruncated": true,
+      "IsOutside": false,
+      "Attributes": "parked"
+    },
+    {
+      "ImageID": "openimage_002",
+      "BoundingBoxID": "bbox_003",
+      "LabelName": "Dog",
+      "X1": 100.0,
+      "Y1": 150.0,
+      "X2": 300.0,
+      "Y2": 350.0,
+      "IsOccluded": false,
+      "IsTruncated": false,
+      "IsOutside": false,
+      "Attributes": "running"
+    }
+  ],
+  "classes": [
+    {
+      "ClassName": "Person",
+      "ClassDescription": "A human being"
+    },
+    {
+      "ClassName": "Car",
+      "ClassDescription": "An automobile"
+    },
+    {
+      "ClassName": "Dog",
+      "ClassDescription": "A canine animal"
+    }
+  ]
+}
