@@ -7,8 +7,9 @@ use clap::Parser;
 use converter::{
     downloader::fetch_source_files, extract_and_write_incremental, schema::DatasetSchema,
 };
-use polars::io::parquet::write::ParquetCompression;
 use std::path::{Path, PathBuf};
+
+use crate::formats::Compression;
 
 fn main() -> Result<()> {
     let cli = cli::Cli::parse();
@@ -72,16 +73,7 @@ fn run_convert(args: &cli::ConvertArgs) -> Result<()> {
     let files = fetch_source_files(&schema)?;
     println!("Found {} source file(s)", files.len());
 
-    let compression = if schema.output.compression.compress {
-        match schema.output.compression.algorithm.as_str() {
-            "zstd" => ParquetCompression::Zstd(None),
-            "gzip" => ParquetCompression::Gzip(None),
-            "snappy" => ParquetCompression::Snappy,
-            _ => ParquetCompression::default(),
-        }
-    } else {
-        ParquetCompression::Uncompressed
-    };
+    let compression = Compression::from(schema.output.compression.algorithm.as_str());
 
     let mut processed_paths = std::collections::HashSet::new();
 
@@ -106,7 +98,7 @@ fn run_convert(args: &cli::ConvertArgs) -> Result<()> {
             &schema,
             &output_path,
             args.chunk_size,
-            compression,
+            compression.clone(),
         )
         .unwrap();
     }

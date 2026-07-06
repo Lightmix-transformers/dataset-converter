@@ -3,25 +3,23 @@ use image::ImageReader;
 use jsonpath_lib::JsonPathError;
 use polars::prelude::*;
 use serde_json::Value;
-use std::fs::{File, OpenOptions, read, read_to_string};
+use std::fs::{File, read, read_to_string};
 use std::io::Cursor;
 use std::path::PathBuf;
 use std::{collections::HashMap, path::Path};
 
 use crate::converter::merger::merge_entities;
-use crate::formats::OutputFormat;
-use crate::formats::arrow_io::write_chunk_arrow;
-use crate::formats::parquet_io::write_chunk_parquet;
+use crate::formats::{Compression, DatasetFormat, write_dataset};
 
 use super::schema::{DatasetSchema, FieldConfig};
 
 pub fn extract_and_write_incremental(
-    format: OutputFormat,
+    format: DatasetFormat,
     path: &str,
     schema: &DatasetSchema,
     output_path: &str,
     chunk_size: usize,
-    compression: ParquetCompression,
+    compression: Compression,
 ) -> Result<()> {
     let mut entity_fields: HashMap<&str, Vec<&FieldConfig>> = HashMap::new();
     for field in &schema.fields {
@@ -58,18 +56,26 @@ pub fn extract_and_write_incremental(
 
         let file = File::create(output_path)
             .with_context(|| format!("Failed to create '{}'", output_path))?;
-        write_chunk_parquet(file, compression, &mut merged, output_path).unwrap();
+
+        write_dataset(
+            format.clone(),
+            file.try_clone().unwrap(),
+            compression.clone(),
+            &mut merged,
+            path,
+        );
+
         Ok(())
     }
 }
 
 fn extract_csv_incremental(
-    format: OutputFormat,
+    format: DatasetFormat,
     path: &str,
     entity_fields: &HashMap<&str, Vec<&FieldConfig>>,
     output_path: &str,
     chunk_size: usize,
-    compression: ParquetCompression,
+    compression: Compression,
 ) -> Result<()> {
     for (entity, fields) in entity_fields {
         if fields.is_empty() {
@@ -87,7 +93,7 @@ fn extract_csv_incremental(
             fields,
             output_path,
             chunk_size,
-            compression,
+            compression.clone(),
         )?;
     }
 
@@ -204,13 +210,13 @@ fn build_path_to_indices(
 }
 
 fn extract_csv_with_binary_chunked(
-    format: OutputFormat,
+    format: DatasetFormat,
     path: &str,
     entity: &str,
     fields: &[&FieldConfig],
     output_path: &str,
     chunk_size: usize,
-    compression: ParquetCompression,
+    compression: Compression,
 ) -> Result<()> {
     let df_original = read_csv_file_eager(path)?;
     let path_col_name = resolve_path_column(&df_original, fields)?;
@@ -281,13 +287,13 @@ fn extract_csv_with_binary_chunked(
         total_rows, chunk_size
     );
 
-    let mut file =
+    let file =
         File::create(output_path).with_context(|| format!("Failed to create '{}'", output_path))?;
     for start in (0..total_rows).step_by(chunk_size) {
         let end = (start + chunk_size).min(total_rows);
         println!("    Chunk {}-{}...", start, end);
 
-        let mut result_chunk = match renamed_df {
+        let mut chunk = match renamed_df {
             Some(ref renamed_df) => renamed_df.slice(start as i64, end - start),
             None => DataFrame::empty(),
         };
@@ -296,32 +302,19 @@ fn extract_csv_with_binary_chunked(
             let row_to_path = &row_to_path_by_field[bidx];
             let binary_values =
                 fill_binary_chunk(start, end, row_to_path, field.decode, &field.image_mode);
-            result_chunk.with_column(Column::new(field.name.as_str().into(), &binary_values))?;
+            chunk.with_column(Column::new(field.name.as_str().into(), &binary_values))?;
         }
 
-        println!("    Writing {} rows...", result_chunk.height());
-        match format {
-            OutputFormat::Parquet => {
-                write_chunk_parquet(
-                    file.try_clone().unwrap(),
-                    compression,
-                    &mut result_chunk,
-                    output_path,
-                )
-                .unwrap();
-            }
-            _ => {
-                write_chunk_arrow(
-                    &mut file,
-                    IpcCompression::LZ4,
-                    &mut result_chunk,
-                    output_path,
-                )
-                .unwrap();
-            }
-        }
+        println!("    Writing {} rows...", chunk.height());
+        write_dataset(
+            format.clone(),
+            file.try_clone().unwrap(),
+            compression.clone(),
+            &mut chunk,
+            path,
+        );
 
-        drop(result_chunk);
+        drop(chunk);
     }
 
     println!("  -> Done extracting '{}'", entity);

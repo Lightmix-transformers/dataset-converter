@@ -4,7 +4,7 @@ use anyhow::{Context, Result};
 use polars::prelude::*;
 
 pub fn write_chunk_arrow(
-    file: &mut File,
+    file: File,
     compression: IpcCompression,
     chunk: &mut DataFrame,
     path: &str,
