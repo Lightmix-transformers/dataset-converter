@@ -1,7 +1,7 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-use crate::formats::Compression;
+use crate::formats::{Compression, DatasetFormat};
 
 /// Top-level dataset schema configuration loaded from YAML.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -225,7 +225,7 @@ impl DatasetSchema {
             }
         }
 
-        let valid_formats = ["parquet", "arrow"];
+        let valid_formats = DatasetFormat::formats();
         if !valid_formats.contains(&self.output.format.as_str()) {
             issues.push(format!(
                 "Output format '{}': invalid. Must be one of: {:?}",

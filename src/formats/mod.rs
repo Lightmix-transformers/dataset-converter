@@ -21,8 +21,14 @@ impl From<&str> for DatasetFormat {
         match format {
             "parquet" => DatasetFormat::Parquet,
             "arrow" => DatasetFormat::Arrow,
-            _ => unimplemented!(),
+            _ => unimplemented!("Unable to create a dataset from format {}", format),
         }
+    }
+}
+
+impl DatasetFormat {
+    pub fn formats() -> [&'static str; 2] {
+        ["parquet", "arrow"]
     }
 }
 
@@ -96,6 +102,5 @@ pub fn write_dataset(
                 write_chunk_arrow(file, None, chunk, path).unwrap();
             }
         }
-        _ => unimplemented!(),
     }
 }
