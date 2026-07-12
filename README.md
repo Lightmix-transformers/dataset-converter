@@ -57,3 +57,11 @@ It works approximately like that (diagram below). I'm still experimenting with s
                     │ (+ compression)              │
                     └──────────────────────────────┘
 ```
+
+## Usage
+To use the tool, specify dataset location, output dir, output format, and optionally compressing and memory handling options. Example for imagenette2 dataset:
+```bash
+cargo run --release convert --output /storage/experiments-ml/datasets/imagenette2 local /storage/experiments-ml/datasets/raw/imagenette2/ --schema schemas/imagenette.yaml  --decode-images --image-mode rgb --chunk-size 1024 --format parque
+```
+
+
