@@ -1,11 +1,11 @@
 # Dataset converter tool to parquet/arrow
-This tool was developed in order to unify my experiments with different datasets into a single format - arrow, which is very efficient for reading from the disk. Althought, initially it was made for arrow format, it supports convertion to parquet with or without compressing as well.
+This tool was developed in order to unify my experiments with different datasets into a single format - arrow, which is very efficient for reading from the disk. Althought, initially it was made for the arrow format, it supports convertion to parquet with or without compressing as well.
 
-It's in its initial development stage, so many things may not work well.
+The tool in its initial development stage, so many things may not work well.
 
 ## Architecture
 
-It works approximately like that (diagram below). I'm still experimenting with scheme definition, so changes are expected.
+It works approximately like that (diagram below). I'm still experimenting with scheme definitions, so changes are expected.
 ```text
                          CLI args + YAML schema
                                    │
