@@ -1,5 +1,6 @@
 use std::fs::File;
 
+use anyhow::Context;
 use polars::{
     frame::DataFrame,
     io::{ipc::IpcCompression, parquet::write::ParquetCompression},
@@ -14,6 +15,15 @@ pub mod parquet_io;
 pub enum DatasetFormat {
     Parquet,
     Arrow,
+}
+
+impl std::fmt::Display for DatasetFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DatasetFormat::Parquet => write!(f, "parquet"),
+            DatasetFormat::Arrow => write!(f, "arrow"),
+        }
+    }
 }
 
 impl From<&str> for DatasetFormat {
@@ -32,7 +42,7 @@ impl DatasetFormat {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Compression {
     Zstd,
     Gzip,
@@ -70,6 +80,7 @@ impl From<&str> for Compression {
         match format {
             "zstd" => Self::Zstd,
             "gzip" => Self::Gzip,
+            "lz4" => Self::Lz4,
             "snappy" => Self::Snappy,
             "none" => Self::None,
             _ => unimplemented!(),
@@ -81,7 +92,7 @@ pub fn write_dataset(
     format: DatasetFormat,
     file: File,
     compression: Compression,
-    chunk: &mut DataFrame,
+    frame: &mut DataFrame,
     path: &str,
 ) {
     match format {
@@ -89,17 +100,25 @@ pub fn write_dataset(
             write_chunk_parquet(
                 file,
                 compression.to_parquet().unwrap().unwrap(),
-                chunk,
+                frame,
                 path,
             )
             .unwrap();
         }
         DatasetFormat::Arrow => {
-            let arrow_compression = compression.to_arrow().unwrap();
+            let arrow_compression = compression
+                .to_arrow()
+                .with_context(|| {
+                    format!(
+                        "Comprission {:?} is not allowed for arrow files",
+                        compression
+                    )
+                })
+                .unwrap();
             if arrow_compression.is_some() {
-                write_chunk_arrow(file, arrow_compression, chunk, path).unwrap();
+                write_chunk_arrow(file, arrow_compression, frame, path).unwrap();
             } else {
-                write_chunk_arrow(file, None, chunk, path).unwrap();
+                write_chunk_arrow(file, None, frame, path).unwrap();
             }
         }
     }

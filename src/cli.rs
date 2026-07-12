@@ -49,4 +49,8 @@ pub struct ConvertArgs {
     /// Image mode for decoding: `grayscale` or `rgb` (default: grayscale).
     #[clap(long, default_value = "grayscale")]
     pub image_mode: String,
+
+    /// Preserve dataset splits — write separate files per split.
+    #[clap(long)]
+    pub preserve_splits: bool,
 }

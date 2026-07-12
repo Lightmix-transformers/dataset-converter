@@ -1,5 +1,6 @@
 name: lvis
 version: "1.0"
+split_strategy: file_path
 
 source:
   type: hf_dataset

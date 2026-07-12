@@ -1,6 +1,8 @@
 name: imagenette
 version: "1.0"
 description: "ImageNette2 - A subset of ImageNet with 10 easily distinguishable classes"
+split_strategy: row_column
+split_column: path
 
 source:
   type: local
@@ -9,6 +11,8 @@ source:
 files:
   - path: noisy_imagenette.csv
     entity: images
+    split_strategy: row_column
+    split_column: path
 
 fields:
   - name: image_id

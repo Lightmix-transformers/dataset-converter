@@ -4,9 +4,12 @@ mod formats;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use converter::{
-    downloader::fetch_source_files, extract_and_write_incremental, schema::DatasetSchema,
-};
+use converter::downloader::fetch_source_files;
+use converter::extract_and_write;
+use converter::extract_csv_by_split;
+use converter::extract_split;
+use converter::schema::{DatasetSchema, SplitStrategy};
+use std::fs::create_dir_all;
 use std::path::{Path, PathBuf};
 
 use crate::formats::Compression;
@@ -75,15 +78,37 @@ fn run_convert(args: &cli::ConvertArgs) -> Result<()> {
 
     let compression = Compression::from(schema.output.compression.algorithm.as_str());
 
-    let mut processed_paths = std::collections::HashSet::new();
+    // Branch on split_strategy from schema
+    match schema.split_strategy.clone().unwrap_or(SplitStrategy::None) {
+        SplitStrategy::None => {
+            convert_no_splits(&files, &schema, args, compression)?;
+        }
+        SplitStrategy::FilePath => {
+            convert_path_splits(&files, &schema, args, compression)?;
+        }
+        SplitStrategy::RowColumn => {
+            convert_column_splits(&files, &schema, args, compression)?;
+        }
+    }
 
+    Ok(())
+}
+
+fn convert_no_splits(
+    files: &[(String, String, PathBuf)],
+    schema: &DatasetSchema,
+    args: &cli::ConvertArgs,
+    compression: Compression,
+) -> Result<()> {
     println!("Using incremental extraction for binary fields...");
+
     let output_path = match args.format.as_str() {
         "parquet" => format!("{}/output.parquet", args.output.trim_end_matches('/')),
         _ => format!("{}/output.arrow", args.output.trim_end_matches('/')),
     };
 
-    for (_, path) in &files {
+    let mut processed_paths = std::collections::HashSet::new();
+    for (_, _, path) in files {
         if !processed_paths.insert(path.clone()) {
             continue;
         }
@@ -92,22 +117,87 @@ fn run_convert(args: &cli::ConvertArgs) -> Result<()> {
             .to_str()
             .context(format!("Invalid path: {}", path.display()))?;
 
-        extract_and_write_incremental(
+        extract_and_write(
             args.format.as_str().into(),
             path_str,
-            &schema,
+            schema,
             &output_path,
             args.chunk_size,
             compression.clone(),
-        )
-        .unwrap();
+        )?;
     }
 
-    let output_path = match args.format.as_str() {
-        "parquet" => format!("{}/output.parquet", args.output.trim_end_matches('/')),
-        _ => format!("{}/output.arrow", args.output.trim_end_matches('/')),
-    };
     println!("Done! Output written to '{}'", output_path);
+    Ok(())
+}
+
+/// File-path split mode: group files by detected split, extract each split independently.
+fn convert_path_splits(
+    files: &[(String, String, PathBuf)],
+    schema: &DatasetSchema,
+    args: &cli::ConvertArgs,
+    compression: Compression,
+) -> Result<()> {
+    // Group files by split name
+    let mut splits: std::collections::HashMap<String, Vec<(String, PathBuf)>> =
+        std::collections::HashMap::new();
+    for (entity, split, path) in files {
+        splits
+            .entry(split.clone())
+            .or_default()
+            .push((entity.clone(), path.clone()));
+    }
+
+    for (split_name, split_files) in &splits {
+        println!("\nProcessing split: '{}'", split_name);
+        let path = args.output.trim_end_matches('/');
+        create_dir_all(&path).with_context(|| format!("Failed to create directory '{}'", path))?;
+
+        let output_path = format!("{}/{}.{}", path, split_name, args.format.as_str());
+
+        extract_split(
+            split_files,
+            schema,
+            &output_path,
+            args.format.as_str().into(),
+            compression.clone(),
+        )
+        .with_context(|| format!("Failed to process split '{}'", split_name))?;
+
+        println!("  Written to '{}'", output_path);
+    }
+
+    Ok(())
+}
+
+/// Row-column split mode: extract all data, partition rows by split column values.
+fn convert_column_splits(
+    files: &[(String, String, PathBuf)],
+    schema: &DatasetSchema,
+    args: &cli::ConvertArgs,
+    compression: Compression,
+) -> Result<()> {
+    let split_col = schema
+        .split_column
+        .as_ref()
+        .context("row_column strategy requires 'split_column' in schema")?;
+
+    for (_, _, path) in files {
+        let path_str = path
+            .to_str()
+            .context(format!("Invalid path: {}", path.display()))?;
+
+        extract_csv_by_split(
+            args.format.as_str().into(),
+            path_str,
+            schema,
+            split_col,
+            &args.output,
+            args.chunk_size,
+            compression.clone(),
+        )?;
+    }
+
     Ok(())
 }
 

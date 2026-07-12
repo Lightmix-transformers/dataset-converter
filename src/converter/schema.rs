@@ -1,7 +1,18 @@
 use anyhow::Result;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::formats::{Compression, DatasetFormat};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum SplitStrategy {
+    #[serde(rename = "none")]
+    None,
+    #[serde(rename = "file_path")]
+    FilePath,
+    #[serde(rename = "row_column")]
+    RowColumn,
+}
 
 /// Top-level dataset schema configuration loaded from YAML.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -23,6 +34,10 @@ pub struct DatasetSchema {
     /// Output format settings.
     #[serde(default)]
     pub output: OutputConfig,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub split_column: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", default)]
+    pub split_strategy: Option<SplitStrategy>,
 }
 
 fn default_version() -> String {
@@ -243,4 +258,11 @@ impl DatasetSchema {
 
         issues
     }
+}
+
+pub fn detect_split_from_path(path: &str) -> Option<String> {
+    lazy_static::lazy_static! {
+        static ref SPLIT_RE: Regex = Regex::new(r"\b(train|val|validation|test)\b").unwrap();
+    }
+    SPLIT_RE.find(path).map(|m| m.as_str().to_string())
 }

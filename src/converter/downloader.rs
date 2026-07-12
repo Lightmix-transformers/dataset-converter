@@ -4,9 +4,20 @@ use std::fs::{File, create_dir_all};
 use std::io::Write;
 use std::path::PathBuf;
 
+use crate::converter::schema::detect_split_from_path;
+
 use super::schema::DatasetSchema;
 
-pub fn fetch_source_files(schema: &DatasetSchema) -> Result<Vec<(String, PathBuf)>> {
+/// Resolve source files according to the schema's `source_type`.
+///
+/// Dispatches on the configured source type:
+/// - `"local"` → resolve glob patterns on disk
+/// - `"hf_dataset"` → download from HuggingFace Hub
+///
+/// Returns a vector of `(entity_name, split_name, path)` tuples for each
+/// resolved file. The split name is auto-detected from the file path
+/// (e.g. `train/annotations.json` → `"train"`).
+pub fn fetch_source_files(schema: &DatasetSchema) -> Result<Vec<(String, String, PathBuf)>> {
     match schema.source.source_type.as_str() {
         "local" => fetch_local_files(schema),
         "hf_dataset" => fetch_hf_files_sync(schema),
@@ -17,7 +28,16 @@ pub fn fetch_source_files(schema: &DatasetSchema) -> Result<Vec<(String, PathBuf
     }
 }
 
-fn fetch_local_files(schema: &DatasetSchema) -> Result<Vec<(String, PathBuf)>> {
+/// Resolve local source files from the schema's file configuration.
+///
+/// For each entry in `schema.files`:
+/// - Resolves relative paths against `source.path` (absolute paths used as-is)
+/// - Expands glob patterns (`*`, `**`) via the `glob` crate
+/// - Detects split name from the file path (e.g. `train/` → `"train"`)
+///
+/// Non-existent files and empty glob matches emit warnings but do not
+/// abort — they are silently skipped.
+fn fetch_local_files(schema: &DatasetSchema) -> Result<Vec<(String, String, PathBuf)>> {
     let base_path = schema
         .source
         .path
@@ -33,7 +53,7 @@ fn fetch_local_files(schema: &DatasetSchema) -> Result<Vec<(String, PathBuf)>> {
         };
 
         // Handle glob patterns
-        if file_config.path.contains('*') {
+        if full_path.contains('*') {
             let matches: Vec<PathBuf> = glob(&full_path)
                 .context(format!("Invalid glob pattern '{}'", file_config.path))?
                 .filter_map(|r| r.ok())
@@ -46,7 +66,9 @@ fn fetch_local_files(schema: &DatasetSchema) -> Result<Vec<(String, PathBuf)>> {
                 );
             } else {
                 for path in matches {
-                    files.push((file_config.entity.clone(), path));
+                    let split = detect_split_from_path(path.to_str().unwrap())
+                        .unwrap_or_else(|| "default".to_string());
+                    files.push((file_config.entity.clone(), split, path));
                 }
             }
         } else {
@@ -55,14 +77,22 @@ fn fetch_local_files(schema: &DatasetSchema) -> Result<Vec<(String, PathBuf)>> {
                 println!("Warning: file '{}' does not exist, skipping", full_path);
                 continue;
             }
-            files.push((file_config.entity.clone(), path));
+            let split = detect_split_from_path(&full_path).unwrap_or_else(|| "default".to_string());
+            files.push((file_config.entity.clone(), split, path));
         }
     }
 
     Ok(files)
 }
 
-fn fetch_hf_files_sync(schema: &DatasetSchema) -> Result<Vec<(String, PathBuf)>> {
+/// Download source files from the HuggingFace Hub.
+///
+/// For each file in `schema.files`:
+/// - Constructs a direct download URL from `source.dataset` and `file.path`
+/// - Downloads to `.cache/hf_datasets/{dataset}/` preserving directory structure
+/// - Skips image directories (`.jpg`, `.png`) — only annotation JSON files are fetched
+/// - Detects split name from the configured file path
+fn fetch_hf_files_sync(schema: &DatasetSchema) -> Result<Vec<(String, String, PathBuf)>> {
     let dataset = schema
         .source
         .dataset
@@ -71,7 +101,7 @@ fn fetch_hf_files_sync(schema: &DatasetSchema) -> Result<Vec<(String, PathBuf)>>
 
     // Create download directory
     let cache_dir = format!(".cache/hf_datasets/{}", dataset.replace('/', "_"));
-    std::fs::create_dir_all(&cache_dir)
+    create_dir_all(&cache_dir)
         .context(format!("Failed to create cache directory '{}'", cache_dir))?;
 
     let mut files = Vec::new();
@@ -95,12 +125,17 @@ fn fetch_hf_files_sync(schema: &DatasetSchema) -> Result<Vec<(String, PathBuf)>>
         println!("Downloading: {} -> {}", hf_url, dest_path.display());
         download_file(&hf_url, &dest_path)?;
 
-        files.push((file_config.entity.clone(), dest_path));
+        let split =
+            detect_split_from_path(&file_config.path).unwrap_or_else(|| "default".to_string());
+        files.push((file_config.entity.clone(), split, dest_path));
     }
 
     Ok(files)
 }
 
+/// Download a single file from `url` and write it to `dest`.
+///
+/// Uses a blocking HTTP GET. The entire response body is loaded into memory
 fn download_file(url: &str, dest: &PathBuf) -> Result<()> {
     let response =
         reqwest::blocking::get(url).with_context(|| format!("Failed to connect to '{}'", url))?;

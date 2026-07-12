@@ -5,30 +5,32 @@ edition = "2024"
 
 [dependencies]
 polars = { version = "0.54.4", features = [
-    "async",
-    "parquet",
-    "lazy",
-    "ipc",
-    "performant",
-    "csv",
-    "fmt",
+  "async",
+  "parquet",
+  "lazy",
+  "ipc",
+  "performant",
+  "csv",
+  "fmt",
 ], default-features = false }
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
 reqwest = { version = "0.13", default-features = false, features = [
-    "blocking",
-    "stream",
-    # "charset",
-    "default-tls",
-    "http2",
-    # "system-proxy"
+  "blocking",
+  "stream",
+  # "charset",
+  "default-tls",
+  "http2",
+  # "system-proxy"
 ] }
 jsonpath_lib2 = "0.3.3"
 glob = "0.3"
 anyhow = "1"
 image = { version = "0.25", default-features = false, features = [
-    "jpeg",
-    "png",
+  "jpeg",
+  "png",
 ] }
+regex = "1.13.0"
+lazy_static = "1.5.0"
